@@ -102,7 +102,6 @@ final class PKICardTests: XCTestCase {
 
     func testDiscoverPairsByID() throws {
         let card = FileCard()
-        card.files[[0x8F, 0xFF]] = [3, 0, 0x01, 0x71, 0x02, 0x71, 0x03, 0x71, 0x04, 0x71]
         // index entries are byte-reversed: FIDs 71 01, 71 02, 71 03, 71 04
         card.files[[0x71, 0x01]] = meta(1, file: [0x41, 0x01], label: "Auth", id: 0xA)
         card.files[[0x71, 0x02]] = meta(2, file: [0x42, 0x01], id: 0xA)
