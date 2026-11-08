@@ -9,6 +9,7 @@ usage (run via scripts/bench.sh: plain `swift run` lacks the smartcard entitleme
   seid-bench list [--trace]
   seid-bench export <dir>
   seid-bench sign --key auth|sign --mode pkcs1|raw|pss [--trace]
+  seid-bench keychain-sign [--pss]   (signs through the installed CTK token; macOS asks the PIN)
 """
 
 func fail(_ message: String, code: Int32 = 1) -> Never {
@@ -132,6 +133,49 @@ func runSign(key: String, mode: String, trace: Bool) throws {
     if !ok { exit(4) }
 }
 
+/// Signs with the Auth identity exposed by the CTK token, as any keychain client would. No PIN here.
+func runKeychainSign(pss: Bool) {
+    let prefix = "rs.serbiandocuments.SerbianEIDToken"
+    guard let tokenID = TKTokenWatcher().tokenIDs.first(where: { $0.hasPrefix(prefix) }) else {
+        fail("no \(prefix) token: is the card inserted and the app installed?")
+    }
+    print("token: \(tokenID)")
+    let query: [String: Any] = [
+        kSecClass as String: kSecClassIdentity,
+        kSecAttrTokenID as String: tokenID,
+        kSecReturnRef as String: true,
+        kSecMatchLimit as String: kSecMatchLimitAll,
+    ]
+    var result: CFTypeRef?
+    let status = SecItemCopyMatching(query as CFDictionary, &result)
+    guard status == errSecSuccess, let items = result as? [SecIdentity] else {
+        fail("no identity in the token (OSStatus \(status))")
+    }
+    var found: (SecIdentity, SecCertificate)?
+    for identity in items {
+        var cert: SecCertificate?
+        guard SecIdentityCopyCertificate(identity, &cert) == errSecSuccess, let cert = cert else { continue }
+        if CardIdentity.role(of: SecCertificateCopyData(cert) as Data) == .authentication {
+            found = (identity, cert)
+            break
+        }
+    }
+    guard let (identity, cert) = found else { fail("no authentication identity among \(items.count)") }
+    print("identity: \(SecCertificateCopySubjectSummary(cert) as String? ?? "?")")
+    var key: SecKey?
+    guard SecIdentityCopyPrivateKey(identity, &key) == errSecSuccess, let privateKey = key,
+          let publicKey = SecCertificateCopyKey(cert) else { fail("cannot get the key pair") }
+    let algorithm: SecKeyAlgorithm = pss ? .rsaSignatureDigestPSSSHA256 : .rsaSignatureDigestPKCS1v15SHA256
+    let digest = Data(SHA256.hash(data: Data("seid-bench keychain test".utf8)))
+    var error: Unmanaged<CFError>?
+    guard let signature = SecKeyCreateSignature(privateKey, algorithm, digest as CFData, &error) else {
+        fail("signature failed: \(error.map { String(describing: $0.takeRetainedValue()) } ?? "unknown")")
+    }
+    let ok = SecKeyVerifySignature(publicKey, algorithm, digest as CFData, signature, nil)
+    print(ok ? "SIGNATURE OK" : "SIGNATURE INVALIDE", pss ? "(PSS)" : "(PKCS#1 v1.5)")
+    if !ok { exit(4) }
+}
+
 var args = Array(CommandLine.arguments.dropFirst())
 let trace = args.contains("--trace")
 args.removeAll { $0 == "--trace" }
@@ -152,6 +196,9 @@ do {
         guard let key = option("--key"), ["auth", "sign"].contains(key),
               let mode = option("--mode"), ["pkcs1", "raw", "pss"].contains(mode) else { fail(usage) }
         try runSign(key: key, mode: mode, trace: trace)
+    case "keychain-sign":
+        guard args.count == 1 || (args.count == 2 && args[1] == "--pss") else { fail(usage) }
+        runKeychainSign(pss: args.count == 2)
     default:
         print(usage)
     }

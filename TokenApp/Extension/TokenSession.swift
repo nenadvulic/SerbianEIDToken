@@ -1,9 +1,81 @@
 import CryptoTokenKit
+import Security
+import SerbianEIDPKI
 
-/// Session skeleton: no operation is supported yet (PIN and signing come later).
+/// Session for one client of the token: PIN through the system prompt, then signing on the card.
+/// The card is not relocked after a signature: the PIN stays valid until the card is removed.
 final class TokenSession: TKSmartCardTokenSession, TKTokenSessionDelegate {
+    /// Every SecKeyAlgorithm that CardSignatureAlgorithm knows how to map.
+    private static let candidates: [SecKeyAlgorithm] = [
+        .rsaSignatureDigestPKCS1v15SHA1,
+        .rsaSignatureDigestPKCS1v15SHA256,
+        .rsaSignatureDigestPKCS1v15SHA384,
+        .rsaSignatureDigestPKCS1v15SHA512,
+        .rsaSignatureDigestPKCS1v15Raw,
+        .rsaSignatureRaw,
+        .rsaSignatureDigestPSSSHA256,
+        .rsaSignatureDigestPSSSHA384,
+        .rsaSignatureDigestPSSSHA512,
+    ]
+
+    private var cardToken: Token? { token as? Token }
+
+    private static func cardAlgorithm(for algorithm: TKTokenKeyAlgorithm) -> CardSignatureAlgorithm? {
+        for candidate in candidates where algorithm.isAlgorithm(candidate) {
+            if let mapped = CardSignatureAlgorithm(candidate) { return mapped }
+        }
+        return nil
+    }
+
     func tokenSession(_ session: TKTokenSession, supports operation: TKTokenOperation,
                       keyObjectID: TKToken.ObjectID, algorithm: TKTokenKeyAlgorithm) -> Bool {
-        false
+        guard operation == .signData, cardToken?.identity(for: keyObjectID) != nil else { return false }
+        return TokenSession.cardAlgorithm(for: algorithm) != nil
+    }
+
+    /// The system shows the PIN window, fills the template and sends VERIFY itself.
+    func tokenSession(_ session: TKTokenSession, beginAuthFor operation: TKTokenOperation,
+                      constraint: Any) throws -> TKTokenAuthOperation {
+        guard let value = constraint as? String, value == Token.pinConstraint else {
+            throw TKError(.badParameter)
+        }
+        let auth = TKTokenSmartCardPINAuthOperation()
+        auth.pinFormat.charset = .numeric
+        auth.pinFormat.minPINLength = 4
+        auth.pinFormat.maxPINLength = 8
+        auth.pinFormat.encoding = .ascii
+        auth.pinFormat.pinBlockByteLength = 8
+        auth.pinFormat.pinJustification = .left
+        auth.apduTemplate = Data(PaddedPIN.verifyTemplate) + Data(repeating: 0x00, count: 8)
+        auth.pinByteOffset = 5
+        auth.smartCard = smartCard
+        return auth
+    }
+
+    func tokenSession(_ session: TKTokenSession, sign dataToSign: Data, keyObjectID: TKToken.ObjectID,
+                      algorithm: TKTokenKeyAlgorithm) throws -> Data {
+        guard let token = cardToken, let identity = token.identity(for: keyObjectID),
+              let cardAlgorithm = TokenSession.cardAlgorithm(for: algorithm) else {
+            throw TKError(.badParameter)
+        }
+        let request: SignRequest
+        do {
+            request = try cardAlgorithm.request(for: [UInt8](dataToSign), modulusBits: identity.keySizeInBits)
+        } catch {
+            throw TKError(.badParameter)
+        }
+        // The system already holds an exclusive session with the applet selected (the token has an
+        // AID): no withSession here, and no SELECT that could reset the PIN status.
+        do {
+            let signature = try PKICard(transport: SmartCardTransport(card: smartCard))
+                .sign(request, keyFID: identity.privateKeyFID)
+            return Data(signature)
+        } catch APDUError.status(0x6982) {
+            throw TKError(.authenticationNeeded)  // security status not satisfied: the system asks the PIN again
+        } catch APDUError.malformed {
+            throw TKError(.badParameter)
+        } catch {
+            throw TKError(.communicationError)
+        }
     }
 }
