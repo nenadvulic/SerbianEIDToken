@@ -10,7 +10,7 @@ let package = Package(
     ],
     targets: [
         .target(name: "SerbianEIDPKI"),
-        .executableTarget(name: "seid-bench", dependencies: ["SerbianEIDPKI"]),
+        .executableTarget(name: "seid-bench", dependencies: ["SerbianEIDPKI"], exclude: ["seid-bench.entitlements"]),
         .testTarget(name: "SerbianEIDPKITests", dependencies: ["SerbianEIDPKI"]),
     ]
 )

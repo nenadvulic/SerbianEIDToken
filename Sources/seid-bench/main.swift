@@ -5,7 +5,7 @@ import Security
 import SerbianEIDPKI
 
 let usage = """
-usage:
+usage (run via scripts/bench.sh: plain `swift run` lacks the smartcard entitlement):
   seid-bench list [--trace]
   seid-bench export <dir>
   seid-bench sign --key auth|sign --mode pkcs1|raw|pss [--trace]
@@ -17,7 +17,7 @@ func fail(_ message: String, code: Int32 = 1) -> Never {
 }
 
 func openCard() -> TKSmartCard {
-    guard let manager = TKSmartCardSlotManager.default else { fail("no smart card service") }
+    guard let manager = TKSmartCardSlotManager.default else { fail("no smart card service: run via scripts/bench.sh (plain `swift run` lacks the smartcard entitlement)") }
     for name in manager.slotNames {
         var slot: TKSmartCardSlot?
         let done = DispatchSemaphore(value: 0)
