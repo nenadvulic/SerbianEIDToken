@@ -66,19 +66,12 @@ func runList(trace: Bool) throws {
 }
 
 func runExport(dir: String) throws {
-    let target = URL(fileURLWithPath: dir).standardizedFileURL
-    let cwd = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).standardizedFileURL
-    var root = cwd
-    while !FileManager.default.fileExists(atPath: root.appendingPathComponent(".git").path), root.path != "/" {
-        root.deleteLastPathComponent()
+    let target = URL(fileURLWithPath: dir)
+    guard ExportGuard.isAllowed(target) else {
+        fail("refusing to export inside a git repository (only its captures/ folder is allowed)")
     }
-    let rootPath = root.path.hasSuffix("/") ? root.path : root.path + "/"
-    let targetPath = target.path.hasSuffix("/") ? target.path : target.path + "/"
-    if targetPath.hasPrefix(rootPath), !targetPath.hasPrefix(rootPath + "captures/") {
-        fail("refusing to export inside the repository (only captures/ is allowed)")
-    }
-    try FileManager.default.createDirectory(at: target, withIntermediateDirectories: true)
     let (_, objects) = try discoverAll(trace: false)
+    try FileManager.default.createDirectory(at: target, withIntermediateDirectories: true)
     var index = 0
     for identity in objects.identities {
         let name = "identity-\(index)-\(identity.role).cer"
