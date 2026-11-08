@@ -5,3 +5,5 @@ DerivedData/
 *.xcuserstate
 .DS_Store
 captures/
+TokenApp/build/
+*.xcodeproj

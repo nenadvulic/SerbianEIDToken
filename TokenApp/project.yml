@@ -1,0 +1,49 @@
+name: SerbianEIDTokenApp
+options:
+  bundleIdPrefix: rs.serbiandocuments
+  deploymentTarget:
+    macOS: "13.0"
+settings:
+  base:
+    DEVELOPMENT_TEAM: ZQACTSK9LV
+    CODE_SIGN_STYLE: Automatic
+    CODE_SIGN_IDENTITY: Apple Development
+    SWIFT_VERSION: "5.0"
+    MACOSX_DEPLOYMENT_TARGET: "13.0"
+packages:
+  SerbianEIDPKI:
+    path: ..
+targets:
+  SerbianEIDTokenApp:
+    type: application
+    platform: macOS
+    sources:
+      - App
+      - path: ../Sources/seid-bench/SmartCardTransport.swift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: rs.serbiandocuments.SerbianEIDTokenApp
+        INFOPLIST_FILE: App/Info.plist
+        CODE_SIGN_ENTITLEMENTS: App/App.entitlements
+        GENERATE_INFOPLIST_FILE: NO
+    dependencies:
+      - package: SerbianEIDPKI
+        product: SerbianEIDPKI
+      - target: SerbianEIDToken
+  SerbianEIDToken:
+    type: app-extension
+    platform: macOS
+    sources:
+      - Extension
+      - path: ../Sources/seid-bench/SmartCardTransport.swift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: rs.serbiandocuments.SerbianEIDTokenApp.SerbianEIDToken
+        PRODUCT_NAME: SerbianEIDToken
+        INFOPLIST_FILE: Extension/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Extension/Extension.entitlements
+        GENERATE_INFOPLIST_FILE: NO
+    dependencies:
+      - package: SerbianEIDPKI
+        product: SerbianEIDPKI
+      - sdk: CryptoTokenKit.framework
