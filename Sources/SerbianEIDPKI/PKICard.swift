@@ -1,7 +1,7 @@
 import Foundation
 
 public final class PKICard {
-    private let transport: APDUTransport
+    let transport: APDUTransport
     private var selectStrategy: Int?
 
     public init(transport: APDUTransport) {
