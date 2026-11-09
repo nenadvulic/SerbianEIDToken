@@ -39,7 +39,7 @@ final class TokenSession: TKSmartCardTokenSession, TKTokenSessionDelegate {
         guard let value = constraint as? String, value == Token.pinConstraint else {
             throw TKError(.badParameter)
         }
-        let auth = TKTokenSmartCardPINAuthOperation()
+        let auth = PINAuthOperation()
         auth.pinFormat.charset = .numeric
         auth.pinFormat.minPINLength = 4
         auth.pinFormat.maxPINLength = 8
@@ -76,6 +76,35 @@ final class TokenSession: TKSmartCardTokenSession, TKTokenSessionDelegate {
             throw TKError(.badParameter)
         } catch {
             throw TKError(.communicationError)
+        }
+    }
+}
+
+/// PIN operation for readers without a pinpad: the base class only collects the PIN, so finish()
+/// sends the VERIFY itself. Exactly one VERIFY per entry, never retried, PIN cleared after use.
+final class PINAuthOperation: TKTokenSmartCardPINAuthOperation {
+    override func finish() throws {
+        let entered = pin
+        pin = nil
+        guard let entered = entered, (try? PaddedPIN(entered)) != nil else {
+            throw TKError(.authenticationFailed)  // nothing sent to the card
+        }
+        guard let card = smartCard else { throw TKError(.communicationError) }
+        // The token session's card already has the applet selected: no SELECT, no withSession.
+        let result: PINResult
+        do {
+            result = try PKICard(transport: SmartCardTransport(card: card)).verifyPIN(entered)
+        } catch {
+            throw TKError(.communicationError)
+        }
+        switch result {
+        case .ok:
+            return
+        case .wrong(let left):
+            let message = left.map { "Wrong PIN, \($0) attempts left" } ?? "Wrong PIN"
+            throw TKError(.authenticationFailed, userInfo: [NSLocalizedDescriptionKey: message])
+        case .blocked:
+            throw TKError(.authenticationFailed, userInfo: [NSLocalizedDescriptionKey: "PIN blocked"])
         }
     }
 }
