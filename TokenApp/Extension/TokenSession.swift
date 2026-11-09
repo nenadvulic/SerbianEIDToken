@@ -33,7 +33,9 @@ final class TokenSession: TKSmartCardTokenSession, TKTokenSessionDelegate {
         return TokenSession.cardAlgorithm(for: algorithm) != nil
     }
 
-    /// The system shows the PIN window, fills the template and sends VERIFY itself.
+    /// The system shows the PIN dialog (sized by pinFormat) and stores the entry in `pin`.
+    /// PINAuthOperation.finish() then validates it and sends exactly one VERIFY. There is never
+    /// an automatic retry.
     func tokenSession(_ session: TKTokenSession, beginAuthFor operation: TKTokenOperation,
                       constraint: Any) throws -> TKTokenAuthOperation {
         guard let value = constraint as? String, value == Token.pinConstraint else {
@@ -46,6 +48,9 @@ final class TokenSession: TKSmartCardTokenSession, TKTokenSessionDelegate {
         auth.pinFormat.encoding = .ascii
         auth.pinFormat.pinBlockByteLength = 8
         auth.pinFormat.pinJustification = .left
+        // Standard PIN-operation configuration, kept for the framework (e.g. secure-PIN readers).
+        // finish() does not use apduTemplate or pinByteOffset. Any change to the VERIFY path must
+        // keep the one-VERIFY-per-entry rule.
         auth.apduTemplate = Data(PaddedPIN.verifyTemplate) + Data(repeating: 0x00, count: 8)
         auth.pinByteOffset = 5
         auth.smartCard = smartCard
