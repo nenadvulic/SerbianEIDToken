@@ -53,10 +53,9 @@ enum TrustInstaller {
         if let ref = try add(intermediate) { defaults.set(ref, forKey: Key.intermediateRef) }
 
         if !chainEvaluates(intermediate) {
-            let settings: [[String: Any]] = [
-                [kSecTrustSettingsResult as String: SecTrustSettingsResult.trustRoot.rawValue],
-            ]
-            let status = SecTrustSettingsSetTrustSettings(root, .user, settings as CFArray)
+            // nil = "always trust this root", the same setting as `security add-trusted-cert -r trustRoot`
+            // (an empty trust-settings array), which was validated with a real card in Safari.
+            let status = SecTrustSettingsSetTrustSettings(root, .user, nil)
             guard status == errSecSuccess else { throw TrustInstallerError.trustSettings(status) }
             defaults.set(true, forKey: Key.rootTrustAdded)
         }
