@@ -101,10 +101,6 @@ trust chain above is installed.
 Card captures go to `captures/`, which is gitignored. It can contain personal data: never
 commit it.
 
-## Credits
-
-The card protocol comes from the open source srb-id-pkcs11 project (Unlicense), by the
-author of Baš Čelik.
 
 ## License
 
