@@ -107,8 +107,10 @@ enum TrustInstaller {
         ] as CFDictionary, &result)
         switch status {
         case errSecSuccess:
-            guard let ref = result as? Data else { throw TrustInstallerError.keychain(errSecInternalError) }
-            return ref
+            // File-based (login) keychains return an array of persistent refs, not a single Data.
+            if let ref = result as? Data { return ref }
+            if let refs = result as? [Data], let ref = refs.first { return ref }
+            throw TrustInstallerError.keychain(errSecInternalError)
         case errSecDuplicateItem: return nil
         default: throw TrustInstallerError.keychain(status)
         }
