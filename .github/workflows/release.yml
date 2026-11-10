@@ -1,0 +1,224 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    env:
+      APP_NAME: SerbianEIDTokenApp
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute version
+        run: |
+          TAG="$GITHUB_REF_NAME"
+          VERSION="${TAG#v}"
+          VERSION="${VERSION%%-*}"
+          if ! [[ "$VERSION" =~ ^[0-9]+(\.[0-9]+){0,2}$ ]]; then
+            echo "::error::tag '$TAG' does not yield a numeric version (got '$VERSION')"
+            exit 1
+          fi
+          case "$TAG" in *-*) PRERELEASE=true ;; *) PRERELEASE=false ;; esac
+          BUILD="${{ github.run_number }}"
+          echo "TAG=$TAG VERSION=$VERSION BUILD=$BUILD PRERELEASE=$PRERELEASE"
+          {
+            echo "TAG=$TAG"
+            echo "VERSION=$VERSION"
+            echo "BUILD=$BUILD"
+            echo "PRERELEASE=$PRERELEASE"
+            echo "KEYCHAIN_PATH=$RUNNER_TEMP/release-signing.keychain-db"
+            echo "ARCHIVE_PATH=$RUNNER_TEMP/$APP_NAME.xcarchive"
+            echo "EXPORT_PATH=$RUNNER_TEMP/export"
+            echo "DIST_DIR=$RUNNER_TEMP/dist"
+          } >> "$GITHUB_ENV"
+
+      - name: Check localization catalogs
+        run: python3 scripts/check-l10n.py
+
+      - name: Import Developer ID certificate into temporary keychain
+        env:
+          DEVELOPER_ID_P12_BASE64: ${{ secrets.DEVELOPER_ID_P12_BASE64 }}
+          DEVELOPER_ID_P12_PASSWORD: ${{ secrets.DEVELOPER_ID_P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          CERT_PATH="$RUNNER_TEMP/developer-id.p12"
+          printf '%s' "$DEVELOPER_ID_P12_BASE64" | base64 --decode > "$CERT_PATH"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -k "$KEYCHAIN_PATH" -f pkcs12 \
+            -P "$DEVELOPER_ID_P12_PASSWORD" \
+            -T /usr/bin/codesign -T /usr/bin/security
+          rm -f "$CERT_PATH"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH" > /dev/null
+          # Put the temporary keychain first in the user search list.
+          existing=$(security list-keychains -d user | sed -e 's/^[[:space:]]*"//' -e 's/"$//')
+          # shellcheck disable=SC2086
+          security list-keychains -d user -s "$KEYCHAIN_PATH" $existing
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+          SIGNING_SHA1=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" \
+            | awk '/"Developer ID Application:/ { print $2; exit }')
+          if [ -z "$SIGNING_SHA1" ]; then
+            echo "::error::no Developer ID Application identity in the imported .p12"
+            exit 1
+          fi
+          echo "SIGNING_SHA1=$SIGNING_SHA1" >> "$GITHUB_ENV"
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: TokenApp
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          printf 'SEID_TEAM_ID = %s\n' "$APPLE_TEAM_ID" > Local.xcconfig
+          xcodegen generate
+
+      - name: Archive (Developer ID, Hardened Runtime)
+        working-directory: TokenApp
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          xcodebuild -project SerbianEIDTokenApp.xcodeproj \
+            -scheme SerbianEIDTokenApp \
+            -configuration Release \
+            -destination 'generic/platform=macOS' \
+            -archivePath "$ARCHIVE_PATH" \
+            MARKETING_VERSION="$VERSION" \
+            CURRENT_PROJECT_VERSION="$BUILD" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Developer ID Application" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            OTHER_CODE_SIGN_FLAGS=--timestamp \
+            archive
+
+      - name: Export archive
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          EXPORT_OPTIONS="$RUNNER_TEMP/ExportOptions.plist"
+          cp TokenApp/ExportOptions.plist "$EXPORT_OPTIONS"
+          /usr/libexec/PlistBuddy -c "Add :teamID string $APPLE_TEAM_ID" "$EXPORT_OPTIONS"
+          xcodebuild -exportArchive \
+            -destination 'generic/platform=macOS' \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportPath "$EXPORT_PATH" \
+            -exportOptionsPlist "$EXPORT_OPTIONS"
+          rm -f "$EXPORT_OPTIONS"
+          test -d "$EXPORT_PATH/$APP_NAME.app"
+
+      - name: Check signatures and version before notarization
+        run: |
+          app="$EXPORT_PATH/$APP_NAME.app"
+          appex="$app/Contents/PlugIns/SerbianEIDToken.appex"
+          test -d "$appex"
+          for bundle in "$appex" "$app"; do
+            codesign --verify --strict --verbose=2 "$bundle"
+            info=$(codesign -dvvv "$bundle" 2>&1)
+            grep -E '^(Identifier|Authority|TeamIdentifier|Timestamp|CodeDirectory)' <<<"$info"
+            grep -q '^Authority=Developer ID Application:' <<<"$info" \
+              || { echo "::error::$bundle not signed with Developer ID Application"; exit 1; }
+            grep -Eq '^CodeDirectory .*flags=0x[0-9a-f]+\(.*runtime.*\)' <<<"$info" \
+              || { echo "::error::$bundle lacks Hardened Runtime"; exit 1; }
+            grep -q '^Timestamp=' <<<"$info" \
+              || { echo "::error::$bundle lacks a secure timestamp"; exit 1; }
+          done
+          short=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")
+          build=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app/Contents/Info.plist")
+          if [ "$short" != "$VERSION" ] || [ "$build" != "$BUILD" ]; then
+            echo "::error::Info.plist has $short ($build), expected $VERSION ($BUILD)"
+            exit 1
+          fi
+
+      - name: Create and sign DMG
+        run: |
+          mkdir -p "$DIST_DIR"
+          DMG_PATH="$DIST_DIR/SerbianEIDToken-${TAG#v}.dmg"
+          scripts/make-dmg.sh "$EXPORT_PATH/$APP_NAME.app" "$VERSION" "$DMG_PATH"
+          codesign --sign "$SIGNING_SHA1" --keychain "$KEYCHAIN_PATH" --timestamp "$DMG_PATH"
+          codesign --verify --verbose=2 "$DMG_PATH"
+          echo "DMG_PATH=$DMG_PATH" >> "$GITHUB_ENV"
+
+      - name: Notarize and staple DMG
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+        run: |
+          KEY_PATH="$RUNNER_TEMP/AuthKey_$ASC_KEY_ID.p8"
+          printf '%s' "$ASC_KEY_P8_BASE64" | base64 --decode > "$KEY_PATH"
+          result="$RUNNER_TEMP/notary-result.json"
+          xcrun notarytool submit "$DMG_PATH" \
+            --key "$KEY_PATH" --key-id "$ASC_KEY_ID" --issuer "$ASC_ISSUER_ID" \
+            --wait --timeout 1h --output-format json > "$result" || true
+          cat "$result"
+          status=$(/usr/bin/plutil -extract status raw -o - "$result" 2>/dev/null || echo unknown)
+          if [ "$status" != "Accepted" ]; then
+            echo "::error::notarization status: $status"
+            id=$(/usr/bin/plutil -extract id raw -o - "$result" 2>/dev/null || true)
+            if [ -n "$id" ]; then
+              xcrun notarytool log "$id" \
+                --key "$KEY_PATH" --key-id "$ASC_KEY_ID" --issuer "$ASC_ISSUER_ID" || true
+            fi
+            rm -f "$KEY_PATH"
+            exit 1
+          fi
+          rm -f "$KEY_PATH"
+          xcrun stapler staple "$DMG_PATH"
+
+      - name: Verify notarized DMG and app
+        run: |
+          set -euo pipefail
+          xcrun stapler validate "$DMG_PATH"
+          spctl -a -t open --context context:primary-signature -v "$DMG_PATH"
+          mnt=$(mktemp -d "$RUNNER_TEMP/dmg-mount.XXXXXX")
+          hdiutil attach -nobrowse -readonly -mountpoint "$mnt" "$DMG_PATH"
+          trap 'hdiutil detach "$mnt" -force || true' EXIT
+          app="$mnt/$APP_NAME.app"
+          test -L "$mnt/Applications"
+          codesign --verify --deep --strict --verbose=2 "$app"
+          spctl -a -vv -t exec "$app"
+          bin="$app/Contents/MacOS/$APP_NAME"
+          archs=$(lipo -archs "$bin")
+          echo "archs: $archs"
+          case " $archs " in *" x86_64 "*) ;; *) echo "missing x86_64"; exit 1;; esac
+          case " $archs " in *" arm64 "*) ;; *) echo "missing arm64"; exit 1;; esac
+
+      - name: Checksum
+        run: |
+          cd "$DIST_DIR"
+          dmg=$(basename "$DMG_PATH")
+          shasum -a 256 "$dmg" > "$dmg.sha256"
+          cat "$dmg.sha256"
+          echo "SHA_PATH=$DIST_DIR/$dmg.sha256" >> "$GITHUB_ENV"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          flags=(--generate-notes --title "$TAG")
+          if [ "$PRERELEASE" = "true" ]; then flags+=(--prerelease); fi
+          gh release create "$TAG" "$DMG_PATH" "$SHA_PATH" "${flags[@]}"
+
+      - name: Clean up signing material
+        if: always()
+        run: |
+          if [ -n "${KEYCHAIN_PATH:-}" ]; then
+            security delete-keychain "$KEYCHAIN_PATH" 2>/dev/null || true
+          fi
+          rm -f "$RUNNER_TEMP"/developer-id.p12 "$RUNNER_TEMP"/AuthKey_*.p8 \
+            "$RUNNER_TEMP"/ExportOptions.plist TokenApp/Local.xcconfig
