@@ -15,8 +15,14 @@ concurrency:
 jobs:
   build:
     runs-on: macos-latest
+    env:
+      # Pinned XcodeGen release (same as release.yml); the zip is verified by checksum.
+      XCODEGEN_VERSION: 2.45.3
+      XCODEGEN_SHA256: 0c90f4d28ca57335f9fa78cf5bf6dabfe20a232036dabe36de2eef79cb7c0878
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Check localization catalogs
         run: python3 scripts/check-l10n.py
@@ -24,8 +30,17 @@ jobs:
       - name: Test package
         run: swift test
 
-      - name: Install xcodegen
-        run: brew install xcodegen
+      - name: Install XcodeGen (pinned, checksum-verified)
+        run: |
+          set -euo pipefail
+          dir="$RUNNER_TEMP/xcodegen"
+          mkdir -p "$dir"
+          curl -fsSL -o "$dir/xcodegen.zip" \
+            "https://github.com/yonaskolb/XcodeGen/releases/download/$XCODEGEN_VERSION/xcodegen.zip"
+          echo "$XCODEGEN_SHA256  $dir/xcodegen.zip" | shasum -a 256 -c -
+          unzip -q "$dir/xcodegen.zip" -d "$dir"
+          "$dir/xcodegen/bin/xcodegen" --version | grep -qx "Version: $XCODEGEN_VERSION"
+          echo "$dir/xcodegen/bin" >> "$GITHUB_PATH"
 
       - name: Generate Xcode project
         working-directory: TokenApp
@@ -52,3 +67,15 @@ jobs:
           echo "archs: $archs"
           case " $archs " in *" x86_64 "*) ;; *) echo "missing x86_64"; exit 1;; esac
           case " $archs " in *" arm64 "*) ;; *) echo "missing arm64"; exit 1;; esac
+
+      - name: Verify MUP certificates are bundled
+        working-directory: TokenApp
+        run: |
+          app=build/Build/Products/Release/SerbianEIDTokenApp.app
+          for cer in MUPRootCA4.cer MUPGradjaniCA4.cer; do
+            find "$app/Contents/Resources" -path '*SerbianEIDSetup*' -name "$cer" | grep -q . \
+              || { echo "::error::$cer missing from the SerbianEIDSetup resource bundle"; exit 1; }
+          done
+
+      - name: Check localization keys against the build
+        run: python3 scripts/check-l10n.py --build TokenApp/build
