@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# Build a compressed, read-only DMG containing the app and an /Applications
-# symlink (drag-to-install layout). No external dependencies beyond hdiutil.
+# Build a compressed, read-only DMG with a styled drag-to-install window: the app,
+# an /Applications symlink, a background with an arrow and instructions, and the
+# app icon as volume icon. Uses dmgbuild (writes the Finder layout directly, no
+# AppleScript), so it also works on CI runners. Install: pip install dmgbuild==1.6.7
 #
 # Usage: scripts/make-dmg.sh <path/to/App.app> <version> <out.dmg>
 set -euo pipefail
@@ -38,20 +40,18 @@ if [ ! -d "$out_dir" ]; then
   exit 65
 fi
 
-staging="$(mktemp -d "${TMPDIR:-/tmp}/make-dmg.XXXXXX")"
-cleanup() { rm -rf "$staging"; }
-trap cleanup EXIT
+if [ ! -f "$app/Contents/Resources/AppIcon.icns" ]; then
+  echo "error: '$app' has no AppIcon.icns" >&2
+  exit 65
+fi
+command -v dmgbuild >/dev/null || { echo "error: dmgbuild not found (pip install dmgbuild==1.6.7)" >&2; exit 69; }
 
-# ditto preserves code signatures, extended attributes and symlinks.
-ditto "$app" "$staging/$(basename "$app")"
-ln -s /Applications "$staging/Applications"
-
-hdiutil create \
-  -volname "Serbian eID Token $version" \
-  -srcfolder "$staging" \
-  -fs HFS+ \
-  -format UDZO \
-  -ov \
+here="$(cd "$(dirname "$0")" && pwd)"
+dmgbuild \
+  -s "$here/dmg/settings.py" \
+  -D app="$app" \
+  -D background="$here/dmg/background.tiff" \
+  "Serbian eID Token $version" \
   "$out"
 
 echo "created $out"

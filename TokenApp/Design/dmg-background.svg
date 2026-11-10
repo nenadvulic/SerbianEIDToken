@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 400" width="660" height="400">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e9eef5"/></linearGradient></defs>
+<rect width="660" height="400" fill="url(#bg)"/>
+<rect y="372" width="660" height="10" fill="#c6363c"/><rect y="382" width="660" height="10" fill="#0c4076"/><rect y="392" width="660" height="8" fill="#ffffff"/>
+<text x="330" y="52" font-family="Helvetica Neue, Arial" font-size="22" font-weight="700" fill="#0c3363" text-anchor="middle">Serbian eID Token</text>
+<g fill="none" stroke="#0c4076" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" opacity="0.85">
+<path d="M262 190 H392"/><path d="M372 168 L398 190 L372 212"/></g>
+<text x="330" y="318" font-family="Helvetica Neue, Arial" font-size="16" fill="#1d2b3a" text-anchor="middle">Prevucite aplikaciju u fasciklu Applications</text>
+<text x="330" y="342" font-family="Helvetica Neue, Arial" font-size="14" fill="#5a6878" text-anchor="middle">Drag the app to the Applications folder</text>
+</svg>
