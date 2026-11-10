@@ -195,11 +195,6 @@ Release process:
 If a release run fails after the GitHub release was already created, delete that release
 before re-running the workflow.
 
-## Credits
-
-The card protocol comes from the open source srb-id-pkcs11 project (Unlicense), by the
-author of Baš Čelik.
-
 ## License
 
 MIT, see `LICENSE`.
