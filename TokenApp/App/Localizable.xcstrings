@@ -1,0 +1,644 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "App location" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App location"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Локација апликације"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lokacija aplikacije"
+          }
+        }
+      }
+    },
+    "Browser access" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Browser access"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Приступ из претраживача"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pristup iz pretraživača"
+          }
+        }
+      }
+    },
+    "Card reader" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Card reader"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Читач картица"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Čitač kartica"
+          }
+        }
+      }
+    },
+    "Check again" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check again"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Провери поново"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Proveri ponovo"
+          }
+        }
+      }
+    },
+    "Checking…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checking…"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Провера…"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Provera…"
+          }
+        }
+      }
+    },
+    "Connect a smart card reader." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connect a smart card reader."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Повежите читач картица."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Povežite čitač kartica."
+          }
+        }
+      }
+    },
+    "ID card" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ID card"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Лична карта"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lična karta"
+          }
+        }
+      }
+    },
+    "Independent project, not affiliated with the Serbian State." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Independent project, not affiliated with the Serbian State."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Независан пројекат, није повезан са државом Србијом."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nezavisan projekat, nije povezan sa državom Srbijom."
+          }
+        }
+      }
+    },
+    "Insert your ID card into the reader." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Insert your ID card into the reader."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Убаците личну карту у читач."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubacite ličnu kartu u čitač."
+          }
+        }
+      }
+    },
+    "Install MUP certificates" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install MUP certificates"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Инсталирај сертификате МУП-а"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instaliraj sertifikate MUP-a"
+          }
+        }
+      }
+    },
+    "MUP certificates" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MUP certificates"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сертификати МУП-а"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sertifikati MUP-a"
+          }
+        }
+      }
+    },
+    "Move this app to the Applications folder, then open it from there." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move this app to the Applications folder, then open it from there."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Преместите ову апликацију у фасциклу „Апликације“ (Applications), па је отворите одатле."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Premestite ovu aplikaciju u fasciklu „Aplikacije“ (Applications), pa je otvorite odatle."
+          }
+        }
+      }
+    },
+    "Ready: open eUprava in Safari or Chrome" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ready: open eUprava in Safari or Chrome"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Спремно: отворите еУправу у претраживачу Safari или Chrome"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Spremno: otvorite eUpravu u pretraživaču Safari ili Chrome"
+          }
+        }
+      }
+    },
+    "Remove MUP certificates" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove MUP certificates"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Уклони сертификате МУП-а"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ukloni sertifikate MUP-a"
+          }
+        }
+      }
+    },
+    "Serbian eID Token" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serbian eID Token"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serbian eID Token"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serbian eID Token"
+          }
+        }
+      }
+    },
+    "Serbian eID setup" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serbian eID setup"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Подешавање електронске личне карте"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Podešavanje elektronske lične karte"
+          }
+        }
+      }
+    },
+    "The MUP certificates are not installed. macOS will ask for your password." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The MUP certificates are not installed. macOS will ask for your password."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сертификати МУП-а нису инсталирани. macOS ће затражити вашу лозинку."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sertifikati MUP-a nisu instalirani. macOS će zatražiti vašu lozinku."
+          }
+        }
+      }
+    },
+    "The MUP certificates could not be changed: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The MUP certificates could not be changed: %@"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сертификати МУП-а нису могли да се промене: %@"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sertifikati MUP-a nisu mogli da se promene: %@"
+          }
+        }
+      }
+    },
+    "The card could not be read. Remove it and insert it again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The card could not be read. Remove it and insert it again."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Картица није могла да се прочита. Извадите је и поново је убаците."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kartica nije mogla da se pročita. Izvadite je i ponovo je ubacite."
+          }
+        }
+      }
+    },
+    "The embedded MUP certificates are invalid." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The embedded MUP certificates are invalid."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Уграђени сертификати МУП-а нису исправни."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ugrađeni sertifikati MUP-a nisu ispravni."
+          }
+        }
+      }
+    },
+    "The inserted card is not a Serbian ID card." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The inserted card is not a Serbian ID card."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Убачена картица није српска лична карта."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ubačena kartica nije srpska lična karta."
+          }
+        }
+      }
+    },
+    "This ID card was issued before the current MUP certificates and is not supported." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This ID card was issued before the current MUP certificates and is not supported."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ова лична карта је издата пре садашњих сертификата МУП-а и није подржана."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ova lična karta je izdata pre sadašnjih sertifikata MUP-a i nije podržana."
+          }
+        }
+      }
+    },
+    "This app lets Safari and Chrome use the Serbian ID card to log in to eUprava." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This app lets Safari and Chrome use the Serbian ID card to log in to eUprava."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Уз ову апликацију можете да се пријавите на еУправу српском личном картом из претраживача Safari и Chrome."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uz ovu aplikaciju možete da se prijavite na eUpravu srpskom ličnom kartom iz pretraživača Safari i Chrome."
+          }
+        }
+      }
+    },
+    "Troubleshooting" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Troubleshooting"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Решавање проблема"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rešavanje problema"
+          }
+        }
+      }
+    },
+    "Waiting for the previous steps." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for the previous steps."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Чека се завршетак претходних корака."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Čeka se završetak prethodnih koraka."
+          }
+        }
+      }
+    },
+    "macOS has not activated the extension yet. Remove the card and insert it again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS has not activated the extension yet. Remove the card and insert it again."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS још није активирао проширење. Извадите картицу и поново је убаците."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS još nije aktivirao proširenje. Izvadite karticu i ponovo je ubacite."
+          }
+        }
+      }
+    },
+    "• After installing or updating, remove the card and insert it again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "• After installing or updating, remove the card and insert it again."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "• После инсталирања или ажурирања извадите картицу и поново је убаците."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "• Posle instaliranja ili ažuriranja izvadite karticu i ponovo je ubacite."
+          }
+        }
+      }
+    },
+    "• Plug the card reader directly into the Mac, not through a hub." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "• Plug the card reader directly into the Mac, not through a hub."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "• Прикључите читач картица директно у Mac, а не преко USB разделника (хаба)."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "• Priključite čitač kartica direktno u Mac, a ne preko USB razdelnika (haba)."
+          }
+        }
+      }
+    },
+    "• Quit Chrome completely with Cmd+Q, then open it again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "• Quit Chrome completely with Cmd+Q, then open it again."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "• Потпуно затворите Chrome пречицом Cmd+Q, па га поново отворите."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "• Potpuno zatvorite Chrome prečicom Cmd+Q, pa ga ponovo otvorite."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

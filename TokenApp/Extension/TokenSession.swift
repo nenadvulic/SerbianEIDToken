@@ -106,10 +106,12 @@ final class PINAuthOperation: TKTokenSmartCardPINAuthOperation {
         case .ok:
             return
         case .wrong(let left):
-            let message = left.map { "Wrong PIN, \($0) attempts left" } ?? "Wrong PIN"
+            let message = left.map { String(localized: "Wrong PIN, \($0) attempts left") }
+                ?? String(localized: "Wrong PIN")
             throw TKError(.authenticationFailed, userInfo: [NSLocalizedDescriptionKey: message])
         case .blocked:
-            throw TKError(.authenticationFailed, userInfo: [NSLocalizedDescriptionKey: "PIN blocked"])
+            throw TKError(.authenticationFailed,
+                          userInfo: [NSLocalizedDescriptionKey: String(localized: "PIN blocked")])
         }
     }
 }
