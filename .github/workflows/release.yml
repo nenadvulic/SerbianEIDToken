@@ -12,27 +12,43 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
+  # Builds, signs, notarizes and checksums the DMG. Read-only token: nothing here can
+  # write to the repository, and the checkout does not keep credentials on disk.
+  build:
     runs-on: macos-latest
     permissions:
-      contents: write
+      contents: read
     env:
       APP_NAME: SerbianEIDTokenApp
+      # Pinned XcodeGen release (same version used locally); the zip is verified by checksum.
+      XCODEGEN_VERSION: 2.45.3
+      XCODEGEN_SHA256: 0c90f4d28ca57335f9fa78cf5bf6dabfe20a232036dabe36de2eef79cb7c0878
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Compute version
+        id: version
         run: |
           TAG="$GITHUB_REF_NAME"
           VERSION="${TAG#v}"
           VERSION="${VERSION%%-*}"
-          if ! [[ "$VERSION" =~ ^[0-9]+(\.[0-9]+){0,2}$ ]]; then
-            echo "::error::tag '$TAG' does not yield a numeric version (got '$VERSION')"
+          # Exactly MAJOR.MINOR.PATCH: the app's update check (SemanticVersion) rejects anything else.
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::tag '$TAG' does not yield a MAJOR.MINOR.PATCH version (got '$VERSION')"
             exit 1
           fi
           case "$TAG" in *-*) PRERELEASE=true ;; *) PRERELEASE=false ;; esac
-          BUILD="${{ github.run_number }}"
+          BUILD="$GITHUB_RUN_NUMBER"
           echo "TAG=$TAG VERSION=$VERSION BUILD=$BUILD PRERELEASE=$PRERELEASE"
+          {
+            echo "tag=$TAG"
+            echo "prerelease=$PRERELEASE"
+          } >> "$GITHUB_OUTPUT"
           {
             echo "TAG=$TAG"
             echo "VERSION=$VERSION"
@@ -47,6 +63,26 @@ jobs:
       - name: Check localization catalogs
         run: python3 scripts/check-l10n.py
 
+      - name: Install XcodeGen (pinned, checksum-verified)
+        run: |
+          set -euo pipefail
+          dir="$RUNNER_TEMP/xcodegen"
+          mkdir -p "$dir"
+          curl -fsSL -o "$dir/xcodegen.zip" \
+            "https://github.com/yonaskolb/XcodeGen/releases/download/$XCODEGEN_VERSION/xcodegen.zip"
+          echo "$XCODEGEN_SHA256  $dir/xcodegen.zip" | shasum -a 256 -c -
+          unzip -q "$dir/xcodegen.zip" -d "$dir"
+          "$dir/xcodegen/bin/xcodegen" --version | grep -qx "Version: $XCODEGEN_VERSION"
+          echo "$dir/xcodegen/bin" >> "$GITHUB_PATH"
+
+      - name: Generate Xcode project
+        working-directory: TokenApp
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          printf 'SEID_TEAM_ID = %s\n' "$APPLE_TEAM_ID" > Local.xcconfig
+          xcodegen generate
+
       - name: Import Developer ID certificate into temporary keychain
         env:
           DEVELOPER_ID_P12_BASE64: ${{ secrets.DEVELOPER_ID_P12_BASE64 }}
@@ -60,7 +96,7 @@ jobs:
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security import "$CERT_PATH" -k "$KEYCHAIN_PATH" -f pkcs12 \
             -P "$DEVELOPER_ID_P12_PASSWORD" \
-            -T /usr/bin/codesign -T /usr/bin/security
+            -T /usr/bin/codesign
           rm -f "$CERT_PATH"
           security set-key-partition-list -S apple-tool:,apple:,codesign: \
             -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH" > /dev/null
@@ -76,17 +112,6 @@ jobs:
             exit 1
           fi
           echo "SIGNING_SHA1=$SIGNING_SHA1" >> "$GITHUB_ENV"
-
-      - name: Install xcodegen
-        run: brew install xcodegen
-
-      - name: Generate Xcode project
-        working-directory: TokenApp
-        env:
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          printf 'SEID_TEAM_ID = %s\n' "$APPLE_TEAM_ID" > Local.xcconfig
-          xcodegen generate
 
       - name: Archive (Developer ID, Hardened Runtime)
         working-directory: TokenApp
@@ -136,6 +161,10 @@ jobs:
               || { echo "::error::$bundle lacks Hardened Runtime"; exit 1; }
             grep -q '^Timestamp=' <<<"$info" \
               || { echo "::error::$bundle lacks a secure timestamp"; exit 1; }
+          done
+          for cer in MUPRootCA4.cer MUPGradjaniCA4.cer; do
+            find "$app/Contents/Resources" -path '*SerbianEIDSetup*' -name "$cer" | grep -q . \
+              || { echo "::error::$cer missing from the SerbianEIDSetup resource bundle"; exit 1; }
           done
           short=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")
           build=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app/Contents/Info.plist")
@@ -204,15 +233,16 @@ jobs:
           dmg=$(basename "$DMG_PATH")
           shasum -a 256 "$dmg" > "$dmg.sha256"
           cat "$dmg.sha256"
-          echo "SHA_PATH=$DIST_DIR/$dmg.sha256" >> "$GITHUB_ENV"
 
-      - name: Create GitHub release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          flags=(--generate-notes --title "$TAG")
-          if [ "$PRERELEASE" = "true" ]; then flags+=(--prerelease); fi
-          gh release create "$TAG" "$DMG_PATH" "$SHA_PATH" "${flags[@]}"
+      - name: Upload DMG and checksum
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-dmg
+          path: |
+            ${{ runner.temp }}/dist/*.dmg
+            ${{ runner.temp }}/dist/*.dmg.sha256
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Clean up signing material
         if: always()
@@ -222,3 +252,34 @@ jobs:
           fi
           rm -f "$RUNNER_TEMP"/developer-id.p12 "$RUNNER_TEMP"/AuthKey_*.p8 \
             "$RUNNER_TEMP"/ExportOptions.plist TokenApp/Local.xcconfig
+
+  # Only this small job can write to the repository: it publishes what the build job produced.
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download DMG and checksum
+        uses: actions/download-artifact@v4
+        with:
+          name: release-dmg
+          path: dist
+
+      - name: Verify checksum
+        working-directory: dist
+        run: |
+          set -euo pipefail
+          ls -l
+          sha256sum -c ./*.dmg.sha256
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.build.outputs.tag }}
+          PRERELEASE: ${{ needs.build.outputs.prerelease }}
+        run: |
+          set -euo pipefail
+          flags=(--repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes --title "$TAG")
+          if [ "$PRERELEASE" = "true" ]; then flags+=(--prerelease); fi
+          gh release create "$TAG" dist/*.dmg dist/*.dmg.sha256 "${flags[@]}"
