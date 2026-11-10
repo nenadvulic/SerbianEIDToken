@@ -69,6 +69,7 @@ enum SystemProbe {
         var trust: SecTrust?
         guard SecTrustCreateWithCertificates(chain as CFArray, SecPolicyCreateSSL(false, nil), &trust) == errSecSuccess,
               let trust else { return false }
+        SecTrustSetNetworkFetchAllowed(trust, false)  // no AIA fetch: no network besides the release check
         return SecTrustEvaluateWithError(trust, nil)
     }
 }

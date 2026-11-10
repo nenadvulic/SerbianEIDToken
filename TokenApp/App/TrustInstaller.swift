@@ -21,24 +21,26 @@ enum TrustInstallerError: LocalizedError {
 /// Installs and removes the pinned MUP CA4 chain for the current user.
 ///
 /// `install()` adds the root and the intermediate to the user's default keychain
-/// (the root must be findable for chain building) and marks the root as a trusted
-/// root in the user trust-settings domain. Each item is recorded in `UserDefaults`
-/// only if this app created it, so `remove()` never touches anything that was
-/// already there (e.g. installed by hand from ca.mup.gov.rs).
+/// (the root must be findable for chain building) and, unless the chain already
+/// evaluates as trusted, marks the root as a trusted root in the user
+/// trust-settings domain. For each keychain item it created, the app stores the
+/// item's persistent reference in `UserDefaults`; `remove()` deletes only those
+/// exact items, so copies installed by hand (in any keychain) are never touched.
 ///
-/// `isInstalled()` = the intermediate is in a keychain AND the root has trust
-/// settings in the user or admin domain.
+/// `isInstalled()` = the intermediate is in a keychain AND it evaluates as
+/// trusted (basic X.509 policy, system/user anchors only, no network fetch), so
+/// "Never Trust" settings or a missing root report not installed.
 enum TrustInstaller {
     private enum Key {
-        static let rootAdded = "mupRootAddedByApp"
-        static let intermediateAdded = "mupIntermediateAddedByApp"
+        /// Persistent reference (Data) of the keychain item the app created.
+        static let rootRef = "mupRootPersistentRefAddedByApp"
+        static let intermediateRef = "mupIntermediatePersistentRefAddedByApp"
         static let rootTrustAdded = "mupRootTrustAddedByApp"
     }
 
     static func isInstalled() -> Bool {
-        guard let root = try? certificate(.root),
-              let intermediate = try? certificate(.intermediate) else { return false }
-        return isInKeychain(intermediate) && hasTrustSettings(root)
+        guard let intermediate = try? certificate(.intermediate) else { return false }
+        return isInKeychain(intermediate) && chainEvaluates(intermediate)
     }
 
     /// Throws before any keychain write if either embedded certificate fails its pinned fingerprint.
@@ -47,10 +49,10 @@ enum TrustInstaller {
         let intermediate = try certificate(.intermediate)
         let defaults = UserDefaults.standard
 
-        if try add(root) { defaults.set(true, forKey: Key.rootAdded) }
-        if try add(intermediate) { defaults.set(true, forKey: Key.intermediateAdded) }
+        if let ref = try add(root) { defaults.set(ref, forKey: Key.rootRef) }
+        if let ref = try add(intermediate) { defaults.set(ref, forKey: Key.intermediateRef) }
 
-        if !hasTrustSettings(root, domain: .user) {
+        if !chainEvaluates(intermediate) {
             let settings: [[String: Any]] = [
                 [kSecTrustSettingsResult as String: SecTrustSettingsResult.trustRoot.rawValue],
             ]
@@ -63,7 +65,6 @@ enum TrustInstaller {
     /// Undoes only what `install()` recorded, then clears the flags.
     static func remove() throws {
         let root = try certificate(.root)
-        let intermediate = try certificate(.intermediate)
         let defaults = UserDefaults.standard
 
         if defaults.bool(forKey: Key.rootTrustAdded) {
@@ -73,13 +74,9 @@ enum TrustInstaller {
             }
             defaults.removeObject(forKey: Key.rootTrustAdded)
         }
-        if defaults.bool(forKey: Key.intermediateAdded) {
-            try delete(intermediate)
-            defaults.removeObject(forKey: Key.intermediateAdded)
-        }
-        if defaults.bool(forKey: Key.rootAdded) {
-            try delete(root)
-            defaults.removeObject(forKey: Key.rootAdded)
+        for key in [Key.intermediateRef, Key.rootRef] {
+            if let ref = defaults.data(forKey: key) { try delete(persistentRef: ref) }
+            defaults.removeObject(forKey: key)
         }
     }
 
@@ -93,28 +90,31 @@ enum TrustInstaller {
         return certificate
     }
 
-    /// Returns true if the certificate was added by this call, false if it was already present.
-    private static func add(_ certificate: SecCertificate) throws -> Bool {
+    /// Returns the persistent reference of the item created by this call, or nil if it was already present.
+    private static func add(_ certificate: SecCertificate) throws -> Data? {
+        var result: CFTypeRef?
         let status = SecItemAdd([
             kSecClass as String: kSecClassCertificate,
             kSecValueRef as String: certificate,
-        ] as CFDictionary, nil)
+            kSecReturnPersistentRef as String: true,
+        ] as CFDictionary, &result)
         switch status {
-        case errSecSuccess: return true
-        case errSecDuplicateItem: return false
+        case errSecSuccess:
+            guard let ref = result as? Data else { throw TrustInstallerError.keychain(errSecInternalError) }
+            return ref
+        case errSecDuplicateItem: return nil
         default: throw TrustInstallerError.keychain(status)
         }
     }
 
-    private static func delete(_ certificate: SecCertificate) throws {
-        for item in keychainCopies(of: certificate) {
-            let status = SecItemDelete([
-                kSecClass as String: kSecClassCertificate,
-                kSecValueRef as String: item,
-            ] as CFDictionary)
-            guard status == errSecSuccess || status == errSecItemNotFound else {
-                throw TrustInstallerError.keychain(status)
-            }
+    /// Deletes exactly the item the app created; an item already gone counts as removed.
+    private static func delete(persistentRef: Data) throws {
+        let status = SecItemDelete([
+            kSecClass as String: kSecClassCertificate,
+            kSecValuePersistentRef as String: persistentRef,
+        ] as CFDictionary)
+        guard status == errSecSuccess || status == errSecItemNotFound else {
+            throw TrustInstallerError.keychain(status)
         }
     }
 
@@ -139,12 +139,14 @@ enum TrustInstaller {
         return items.filter { SecCertificateCopyData($0) as Data == der }
     }
 
-    private static func hasTrustSettings(_ certificate: SecCertificate) -> Bool {
-        hasTrustSettings(certificate, domain: .user) || hasTrustSettings(certificate, domain: .admin)
-    }
-
-    private static func hasTrustSettings(_ certificate: SecCertificate, domain: SecTrustSettingsDomain) -> Bool {
-        var settings: CFArray?
-        return SecTrustSettingsCopyTrustSettings(certificate, domain, &settings) == errSecSuccess
+    /// True when the pinned intermediate chains to a trusted root using only the
+    /// system's anchors and trust settings. Basic X.509 policy, because the SSL
+    /// policy's leaf EKU checks do not fit a CA certificate. No network fetch.
+    private static func chainEvaluates(_ intermediate: SecCertificate) -> Bool {
+        var trust: SecTrust?
+        guard SecTrustCreateWithCertificates(intermediate, SecPolicyCreateBasicX509(), &trust) == errSecSuccess,
+              let trust else { return false }
+        SecTrustSetNetworkFetchAllowed(trust, false)
+        return SecTrustEvaluateWithError(trust, nil)
     }
 }
