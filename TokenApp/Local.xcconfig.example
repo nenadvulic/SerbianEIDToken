@@ -1,0 +1,6 @@
+// Copy this file to Local.xcconfig (gitignored) before building:
+//   cp Local.xcconfig.example Local.xcconfig
+// CI and fresh clones create it from this example; leaving the value empty
+// is fine for unsigned builds (CODE_SIGNING_ALLOWED=NO).
+// Set your own Apple Developer Team ID for signed local builds.
+SEID_TEAM_ID =

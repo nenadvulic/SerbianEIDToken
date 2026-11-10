@@ -3,13 +3,25 @@ options:
   bundleIdPrefix: rs.serbiandocuments
   deploymentTarget:
     macOS: "13.0"
+  developmentLanguage: en
+  knownRegions: [en, sr, sr-Latn]
+configFiles:
+  Debug: Local.xcconfig
+  Release: Local.xcconfig
 settings:
   base:
-    DEVELOPMENT_TEAM: ZQACTSK9LV
+    DEVELOPMENT_TEAM: "$(SEID_TEAM_ID)"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    ENABLE_HARDENED_RUNTIME: YES
+    ARCHS: "$(ARCHS_STANDARD)"
     CODE_SIGN_STYLE: Automatic
     CODE_SIGN_IDENTITY: Apple Development
     SWIFT_VERSION: "5.0"
     MACOSX_DEPLOYMENT_TARGET: "13.0"
+  configs:
+    Release:
+      ONLY_ACTIVE_ARCH: NO
 packages:
   SerbianEIDPKI:
     path: ..
@@ -29,6 +41,8 @@ targets:
     dependencies:
       - package: SerbianEIDPKI
         product: SerbianEIDPKI
+      - package: SerbianEIDPKI
+        product: SerbianEIDSetup
       - target: SerbianEIDToken
   SerbianEIDToken:
     type: app-extension
