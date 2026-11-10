@@ -4,7 +4,7 @@ import SwiftUI
 struct SerbianEIDTokenApp: App {
     var body: some Scene {
         WindowGroup("Serbian eID Token") {
-            ContentView()
+            SetupView()
         }
         .windowResizability(.contentSize)
     }
