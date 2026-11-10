@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check localization catalogs
+        run: python3 scripts/check-l10n.py
+
+      - name: Test package
+        run: swift test
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: TokenApp
+        run: |
+          cp Local.xcconfig.example Local.xcconfig
+          xcodegen generate
+
+      - name: Build app (unsigned, universal)
+        working-directory: TokenApp
+        run: |
+          xcodebuild -project SerbianEIDTokenApp.xcodeproj \
+            -scheme SerbianEIDTokenApp \
+            -configuration Release \
+            -destination 'generic/platform=macOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Verify universal binary
+        working-directory: TokenApp
+        run: |
+          bin=build/Build/Products/Release/SerbianEIDTokenApp.app/Contents/MacOS/SerbianEIDTokenApp
+          archs=$(lipo -archs "$bin")
+          echo "archs: $archs"
+          case " $archs " in *" x86_64 "*) ;; *) echo "missing x86_64"; exit 1;; esac
+          case " $archs " in *" arm64 "*) ;; *) echo "missing arm64"; exit 1;; esac
