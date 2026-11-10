@@ -166,35 +166,6 @@ chain is installed.
 Card captures go to `captures/`, which is gitignored. It can contain personal data: never
 commit it.
 
-## CI and releases
-
-CI (`.github/workflows/ci.yml`) runs on pushes to `main` and on pull requests: localization
-check, `swift test`, and an unsigned universal Release build.
-
-The release workflow (`.github/workflows/release.yml`) runs when a `v*` tag is pushed. It
-archives with Developer ID and Hardened Runtime, builds and signs the DMG, notarizes and
-staples it, writes a SHA-256 file, and creates the GitHub release with both attached.
-
-Repository secrets required:
-
-- `DEVELOPER_ID_P12_BASE64`
-- `DEVELOPER_ID_P12_PASSWORD`
-- `KEYCHAIN_PASSWORD`
-- `APPLE_TEAM_ID`
-- `ASC_KEY_ID`
-- `ASC_ISSUER_ID`
-- `ASC_KEY_P8_BASE64`
-
-Release process:
-
-1. Push a release candidate tag, for example `v1.0.0-rc.1`. A tag with a `-` suffix is
-   published as a pre-release. Download and test the DMG with `gh release download`.
-2. When it is good, push `v1.0.0`. That one is a normal release, so it becomes the
-   "latest" release that the app's update check reads.
-
-If a release run fails after the GitHub release was already created, delete that release
-before re-running the workflow.
-
 ## License
 
 MIT, see `LICENSE`.
