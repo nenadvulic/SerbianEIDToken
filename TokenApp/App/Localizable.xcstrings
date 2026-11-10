@@ -23,6 +23,28 @@
         }
       }
     },
+    "After the first install or an update, remove the card and insert it again." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After the first install or an update, remove the card and insert it again."
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "После прве инсталације или ажурирања извадите картицу и поново је убаците."
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Posle prve instalacije ili ažuriranja izvadite karticu i ponovo je ubacite."
+          }
+        }
+      }
+    },
     "App location" : {
       "localizations" : {
         "en" : {

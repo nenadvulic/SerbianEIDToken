@@ -26,6 +26,10 @@ struct SetupView: View {
                     CheckRow(kind: kind, state: report.checks[kind] ?? .pending,
                              isWorking: model.isWorking, install: model.installChain)
                 }
+                Text("After the first install or an update, remove the card and insert it again.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
                 if report.isReady {
                     Label("Ready: open eUprava in Safari or Chrome", systemImage: "checkmark.seal.fill")
                         .font(.headline)

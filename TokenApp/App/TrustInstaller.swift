@@ -82,8 +82,15 @@ enum TrustInstaller {
 
     // MARK: - Helpers
 
+    /// Any `MUPChainError` (missing resource, fingerprint mismatch) is surfaced as the
+    /// localized `invalidCertificate`, never as an untranslated framework error.
     private static func certificate(_ which: MUPCertificate) throws -> SecCertificate {
-        let der = try MUPChain.verifiedDER(which)
+        let der: Data
+        do {
+            der = try MUPChain.verifiedDER(which)
+        } catch {
+            throw TrustInstallerError.invalidCertificate
+        }
         guard let certificate = SecCertificateCreateWithData(nil, der as CFData) else {
             throw TrustInstallerError.invalidCertificate
         }
@@ -122,16 +129,14 @@ enum TrustInstaller {
         !keychainCopies(of: certificate).isEmpty
     }
 
-    /// Keychain items whose DER equals the given certificate.
+    /// Keychain items whose DER equals the given certificate. No label filter: a copy
+    /// imported by hand may carry any label, so all certificates are compared by DER.
     private static func keychainCopies(of certificate: SecCertificate) -> [SecCertificate] {
-        var query: [String: Any] = [
+        let query: [String: Any] = [
             kSecClass as String: kSecClassCertificate,
             kSecMatchLimit as String: kSecMatchLimitAll,
             kSecReturnRef as String: true,
         ]
-        if let label = SecCertificateCopySubjectSummary(certificate) as String? {
-            query[kSecAttrLabel as String] = label
-        }
         var result: CFTypeRef?
         guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
               let items = result as? [SecCertificate] else { return [] }
