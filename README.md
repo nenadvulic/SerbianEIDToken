@@ -1,35 +1,94 @@
 # Serbian eID Token
 
-A macOS CryptoTokenKit (CTK) extension that exposes the certificates of the Serbian
-electronic ID card (Authentication and qualified Signature) to the macOS keychain, so that
-Safari and Chrome can use the card to log in to eUprava.
+Log in to eUprava with the Serbian ID card in **Safari and Chrome** on your Mac. Until now
+the official solution only worked in Firefox on Mac.
 
-Independent project, not affiliated with the Serbian State.
+Independent project, not affiliated with the Serbian State or the Ministry of Interior (MUP).
 
-## Status
+---
 
-Local build only (not yet notarized or distributed). Verified on a real card:
+# For users
 
-- eUprava login works in Safari and in Chrome.
-- TLS 1.3 works: the RSA-PSS signature is computed by the card in raw mode.
-- The PIN is entered by the user in the standard macOS dialog, sent to the card once, and
-  never stored.
+## What it does
+
+Serbian eID Token is a small macOS app that makes your Serbian ID card available to Safari and
+Chrome. It contains a macOS smart card extension (CryptoTokenKit) that shows the card's
+certificates to the system, and a setup assistant that checks everything and installs what is
+missing. After setup, open eUprava in Safari or Chrome and choose your card certificate when
+asked.
+
+The app is available in English, Serbian (Cyrillic) and Serbian (Latin), following your Mac's
+language.
+
+## What you need
+
+- A Mac with macOS 13 or later. The app is a universal binary.
+- A CCID contact smart card reader, plugged directly into the Mac. A reader on a keyboard or
+  an unpowered USB hub may not be detected.
+- A Serbian ID card with **MUP Građani CA 4** certificates. In this version only these cards
+  are supported. An older card issued before these certificates is reported by the app as
+  not supported.
+
+Signing documents is not supported in this version. It is about logging in.
+
+## Install
+
+1. Download the latest `.dmg` from the
+   [Releases page](https://github.com/nenadvulic/SerbianEIDToken/releases).
+2. Open it and drag the app to the **Applications** folder. It must run from there.
+3. Open the app from Applications and follow the checklist:
+   - **App location**: the app is in Applications.
+   - **Card reader**: a reader is connected.
+   - **ID card**: your card is in the reader.
+   - **MUP certificates**: if missing, click **Install MUP certificates**. The app installs the
+     MUP CA 4 certificates (after verifying their fingerprints) and macOS asks for your
+     password.
+   - **Browser access**: the extension is active.
+4. When you see "Ready: open eUprava in Safari or Chrome", you are done.
+
+Remove the card and insert it again after every install or update. The app checks for new
+versions once a day and shows a Download link when one is available.
+
+## Troubleshooting
+
+- After installing or updating, remove the card and insert it again.
+- Quit Chrome completely with Cmd+Q, then open it again. Chrome remembers an earlier
+  "no certificate" choice until then.
+- Plug the card reader directly into the Mac, not through a hub.
+- Click **Check again** in the app after changing anything.
+
+## Uninstall
+
+1. Open the app, expand **Troubleshooting**, and click **Remove MUP certificates**.
+2. Quit the app and move it from Applications to the Trash.
+
+## Privacy
+
+- No telemetry, no analytics, no accounts.
+- Your PIN is entered only in the standard macOS system dialog. It is sent to the card once
+  and is never stored or logged.
+- The only network call is a daily check of
+  `https://api.github.com/repos/nenadvulic/SerbianEIDToken/releases/latest` to see whether a
+  new version exists.
+
+---
+
+# For developers
 
 ## Requirements
 
-- macOS 13 or later.
-- A CCID contact smart card reader plugged DIRECTLY into the Mac. A reader on a keyboard's
-  USB hub was underpowered and was not detected.
-- Xcode and [xcodegen](https://github.com/yonaskolb/XcodeGen).
+- macOS 13 or later, Xcode, and [xcodegen](https://github.com/yonaskolb/XcodeGen).
+- A CCID reader and a card for real tests.
 
 Tested card: SmartCafe Expert 7, ATR `3BF99600008031FE45534345372047434E335E`, with
-MUP Gradjani CA 4 certificates. SELECT FILE with Le=FF was accepted at the first try
+MUP Građani CA 4 certificates. SELECT FILE with Le=FF was accepted at the first try
 (fallbacks exist for other chips).
 
-## Build and install
+## Build locally
 
 ```sh
 cd TokenApp
+cp Local.xcconfig.example Local.xcconfig   # gitignored; set SEID_TEAM_ID to your Apple Team ID
 xcodegen generate
 xcodebuild -project SerbianEIDTokenApp.xcodeproj -scheme SerbianEIDTokenApp \
   -configuration Debug -derivedDataPath build -allowProvisioningUpdates build
@@ -44,15 +103,20 @@ open /Applications/SerbianEIDTokenApp.app      # open once so macOS registers th
 pluginkit -m -p com.apple.ctk-tokens           # should list ...SerbianEIDTokenApp.SerbianEIDToken
 ```
 
-`DEVELOPMENT_TEAM` is set in `TokenApp/project.yml`; change it to your own team.
+The team ID comes from `SEID_TEAM_ID` in `TokenApp/Local.xcconfig` (copy it from
+`Local.xcconfig.example`). Leaving it empty is fine for unsigned builds
+(`CODE_SIGNING_ALLOWED=NO`), which is what CI does.
 
-IMPORTANT: remove and reinsert the card after every install or update. Otherwise the live
-token is lost and keychain lookups fail (ctkd logs "token driver does not implement any way
-to create new token instances").
+Remove and reinsert the card after every install or update. Otherwise the live token is
+lost and keychain lookups fail (ctkd logs "token driver does not implement any way to
+create new token instances").
 
-## Trust chain (MUP CA4)
+Run the tests with `swift test`, and the localization check with
+`python3 scripts/check-l10n.py` (the `sr` and `sr-Latn` strings must stay in sync).
 
-Install the MUP Gradjani CA 4 intermediate and the MUP Root CA 4 trusted root:
+## Trust chain (MUP CA4), manual
+
+The app installs this for users. To do it by hand:
 
 ```sh
 curl -fsSL -o ca4.crt  http://ca.mup.gov.rs/MUPGradjaniCA4.crt   # -L: redirects to crl.mup.gov.rs
@@ -64,10 +128,10 @@ security add-trusted-cert -r trustRoot -k ~/Library/Keychains/login.keychain-db 
 SHA-256 fingerprints to compare:
 
 - MUP Root CA 4: `6D:CA:4A:B9:CA:BD:18:E5:CB:00:23:05:43:16:AB:F7:8C:99:B5:31:B2:E3:AA:10:31:09:AF:B9:DF:A8:36:D4`
-- MUP Gradjani CA 4: `0E:3E:FE:B4:F7:7F:95:11:8D:2A:2D:58:70:70:9C:92:46:47:BB:DB:80:1C:AF:DB:E7:27:D3:F4:DC:35:45:66`
+- MUP Građani CA 4: `0E:3E:FE:B4:F7:7F:95:11:8D:2A:2D:58:70:70:9C:92:46:47:BB:DB:80:1C:AF:DB:E7:27:D3:F4:DC:35:45:66`
 
-Why: without the chain, the card identity is untrusted and Safari did not offer it when
-eUprava asked for a client certificate.
+Without the chain, the card identity is untrusted and Safari does not offer it when eUprava
+asks for a client certificate.
 
 ## Checks
 
@@ -77,17 +141,17 @@ sc_auth identities
 security export-smartcard -i <tokenid>
 ```
 
-Note: `security find-identity -v` hides untrusted identities, so it shows nothing until the
-trust chain above is installed.
+`security find-identity -v` hides untrusted identities, so it shows nothing until the trust
+chain is installed.
 
-## Troubleshooting
+## Developer notes
 
-- Chrome remembers a previous "no certificate" choice until it is fully quit (Cmd+Q).
 - Safari may silently reuse a previously chosen identity for a host. Test with another host
   name, such as `https://127.0.0.1:4433`.
 - Estonian EstEID token: it uses the same PKCS#15 AID, but it declines Serbian cards. No
   conflict was observed.
 - Coexistence with a YubiKey/PIV token is not yet verified.
+- TLS 1.3 works: the RSA-PSS signature is computed by the card in raw mode.
 
 ## Developer tools
 
@@ -97,9 +161,39 @@ trust chain above is installed.
 - `scripts/tls-test-server.sh [1.2|1.3]`: local TLS server on port 4433 that requests a
   client certificate issued by the MUP CA4 chain, like eUprava. Needs OpenSSL 3 or later
   (set `OPENSSL=/path/to/openssl` if the system one is LibreSSL).
+- `scripts/make-dmg.sh <App.app> <version> <out.dmg>`: builds the drag-to-install DMG.
 
 Card captures go to `captures/`, which is gitignored. It can contain personal data: never
 commit it.
+
+## CI and releases
+
+CI (`.github/workflows/ci.yml`) runs on pushes to `main` and on pull requests: localization
+check, `swift test`, and an unsigned universal Release build.
+
+The release workflow (`.github/workflows/release.yml`) runs when a `v*` tag is pushed. It
+archives with Developer ID and Hardened Runtime, builds and signs the DMG, notarizes and
+staples it, writes a SHA-256 file, and creates the GitHub release with both attached.
+
+Repository secrets required:
+
+- `DEVELOPER_ID_P12_BASE64`
+- `DEVELOPER_ID_P12_PASSWORD`
+- `KEYCHAIN_PASSWORD`
+- `APPLE_TEAM_ID`
+- `ASC_KEY_ID`
+- `ASC_ISSUER_ID`
+- `ASC_KEY_P8_BASE64`
+
+Release process:
+
+1. Push a release candidate tag, for example `v1.0.0-rc.1`. A tag with a `-` suffix is
+   published as a pre-release. Download and test the DMG with `gh release download`.
+2. When it is good, push `v1.0.0`. That one is a normal release, so it becomes the
+   "latest" release that the app's update check reads.
+
+If a release run fails after the GitHub release was already created, delete that release
+before re-running the workflow.
 
 ## Credits
 
