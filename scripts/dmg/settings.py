@@ -28,4 +28,3 @@ icon_locations = {
     app_name: (165, 190),
     "Applications": (495, 190),
 }
-hide_extensions = [app_name]

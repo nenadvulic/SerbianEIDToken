@@ -70,6 +70,12 @@ jobs:
         run: |
           set -euo pipefail
           scripts/make-dmg.sh TokenApp/build/Build/Products/Release/SerbianEIDTokenApp.app 0.0.0 "$RUNNER_TEMP/ci.dmg"
+          # The app inside the DMG must carry no extended attributes (codesign --strict rejects FinderInfo).
+          mnt=$(mktemp -d "$RUNNER_TEMP/ci-dmg.XXXXXX")
+          hdiutil attach -nobrowse -readonly -mountpoint "$mnt" "$RUNNER_TEMP/ci.dmg"
+          trap 'hdiutil detach "$mnt" -force || true' EXIT
+          attrs=$(xattr "$mnt/SerbianEIDTokenApp.app")
+          [ -z "$attrs" ] || { echo "unexpected xattrs on app: $attrs"; exit 1; }
 
       - name: Verify universal binary
         working-directory: TokenApp
