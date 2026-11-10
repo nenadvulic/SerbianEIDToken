@@ -12,6 +12,13 @@ struct SetupView: View {
             Text("Serbian eID setup").font(.title2.bold())
             Text("This app lets Safari and Chrome use the Serbian ID card to log in to eUprava.")
                 .fixedSize(horizontal: false, vertical: true)
+            if let release = model.update {
+                HStack {
+                    Label("A new version is available", systemImage: "arrow.down.circle")
+                    Link("Download", destination: release.htmlURL)
+                }
+                .font(.callout)
+            }
             Divider()
 
             if let report = model.report {

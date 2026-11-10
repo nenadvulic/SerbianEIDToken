@@ -7,7 +7,7 @@ import SerbianEIDSetup
 @MainActor
 final class SetupModel: ObservableObject {
     @Published var report: SetupReport?
-    /// Filled by the update check (Task 9).
+    /// Filled by the daily update check.
     @Published var update: ReleaseInfo?
     @Published var isWorking = false
     @Published var errorMessage: String?
@@ -19,6 +19,10 @@ final class SetupModel: ObservableObject {
 
     init() {
         startObservingSlots()
+        Task { [weak self] in
+            let release = await UpdateChecker.checkIfDue()
+            self?.update = release
+        }
     }
 
     func refresh() {

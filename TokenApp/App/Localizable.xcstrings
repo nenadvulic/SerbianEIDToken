@@ -1,6 +1,28 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "A new version is available" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A new version is available"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступна је нова верзија"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dostupna je nova verzija"
+          }
+        }
+      }
+    },
     "App location" : {
       "localizations" : {
         "en" : {
@@ -129,6 +151,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Povežite čitač kartica."
+          }
+        }
+      }
+    },
+    "Download" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download"
+          }
+        },
+        "sr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Преузми"
+          }
+        },
+        "sr-Latn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preuzmi"
           }
         }
       }
