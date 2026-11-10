@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e3e9f2"/></linearGradient>
+<linearGradient id="key" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1a5596"/><stop offset="1" stop-color="#0a3363"/></linearGradient>
+<clipPath id="sq"><rect x="100" y="100" width="824" height="824" rx="185"/></clipPath>
+<filter id="sh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#0a2a55" flood-opacity="0.28"/></filter>
+<filter id="ish" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#000" flood-opacity="0.25"/></filter>
+</defs>
+<g filter="url(#ish)">
+<rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)"/>
+<g clip-path="url(#sq)">
+<rect x="100" y="800" width="824" height="42" fill="#c6363c"/>
+<rect x="100" y="842" width="824" height="42" fill="#0c4076"/>
+<rect x="100" y="884" width="824" height="40" fill="#ffffff"/>
+<rect x="100" y="884" width="824" height="2" fill="#d5dbe5"/>
+</g>
+</g>
+<g transform="rotate(-35 500 450)" filter="url(#sh)">
+<circle cx="345" cy="450" r="185" fill="url(#key)"/>
+<circle cx="345" cy="450" r="160" fill="none" stroke="#ffffff" stroke-opacity="0.18" stroke-width="8"/>
+<text x="345" y="495" font-family="Helvetica Neue, Arial" font-weight="800" font-size="130" fill="#ffffff" text-anchor="middle">eID</text>
+<rect x="505" y="418" width="345" height="66" rx="18" fill="url(#key)"/>
+<rect x="718" y="478" width="46" height="88" rx="9" fill="url(#key)"/>
+<rect x="792" y="478" width="46" height="62" rx="9" fill="url(#key)"/>
+</g>
+</svg>
