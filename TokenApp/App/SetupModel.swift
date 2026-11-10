@@ -3,7 +3,12 @@ import Foundation
 import SerbianEIDSetup
 
 /// Drives the setup assistant: probes the system off the main thread and
-/// re-probes whenever a reader or a card comes or goes.
+/// re-probes whenever a reader, a card or one of our tokens comes or goes.
+///
+/// Probes run one at a time on a serial queue (two overlapping card sessions
+/// could make the card look unreadable). A refresh requested while a probe is
+/// running queues at most one follow-up probe; the generation guard discards
+/// the result of a probe that was superseded by a newer request.
 @MainActor
 final class SetupModel: ObservableObject {
     @Published var report: SetupReport?
@@ -16,9 +21,14 @@ final class SetupModel: ObservableObject {
     private var slotObservations: [String: NSKeyValueObservation] = [:]
     private var pendingRefresh: Task<Void, Never>?
     private var generation = 0
+    private var probeRunning = false
+    private var probeQueued = false
+    private let probeQueue = DispatchQueue(label: "rs.serbiandocuments.SerbianEIDTokenApp.probe", qos: .userInitiated)
+    private let tokenWatcher = TKTokenWatcher()
 
     init() {
         startObservingSlots()
+        startObservingTokens()
         Task { [weak self] in
             let release = await UpdateChecker.checkIfDue()
             self?.update = release
@@ -27,13 +37,28 @@ final class SetupModel: ObservableObject {
 
     func refresh() {
         generation += 1
+        if probeRunning {
+            probeQueued = true
+        } else {
+            startProbe()
+        }
+    }
+
+    private func startProbe() {
+        probeRunning = true
         let current = generation
-        Task.detached(priority: .userInitiated) {
+        probeQueue.async {
             let report = SetupEvaluator.evaluate(SystemProbe.inputs())
-            await MainActor.run {
-                guard current == self.generation else { return }
-                self.report = report
-            }
+            Task { @MainActor in self.finishProbe(report, generation: current) }
+        }
+    }
+
+    private func finishProbe(_ report: SetupReport, generation current: Int) {
+        probeRunning = false
+        if current == generation { self.report = report }
+        if probeQueued {
+            probeQueued = false
+            startProbe()
         }
     }
 
@@ -58,6 +83,28 @@ final class SetupModel: ObservableObject {
                 self.refresh()
             }
         }
+    }
+
+    // MARK: - Token observation
+
+    /// The extension's token appears some time after the card is read; without this the
+    /// checklist would keep "re-insert the card" until something else triggered a refresh.
+    /// The insertion handler is also called for tokens already present when it is set.
+    private func startObservingTokens() {
+        tokenWatcher.setInsertionHandler { [weak self] tokenID in
+            guard tokenID.hasPrefix(SystemProbe.tokenIDPrefix) else { return }
+            Task { @MainActor [weak self] in
+                self?.watchRemoval(of: tokenID)
+                self?.scheduleRefresh()
+            }
+        }
+    }
+
+    /// Removal handlers are one-shot and per token; re-added on each insertion.
+    private func watchRemoval(of tokenID: String) {
+        tokenWatcher.addRemovalHandler({ [weak self] _ in
+            Task { @MainActor [weak self] in self?.scheduleRefresh() }
+        }, forTokenID: tokenID)
     }
 
     // MARK: - Slot observation
